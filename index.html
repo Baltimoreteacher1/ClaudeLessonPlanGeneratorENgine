@@ -453,7 +453,7 @@
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const GATEWAY_URL = "https://cluadenotebookengine.neftjd.workers.dev";
+const GATEWAY_URL = "https://script.google.com/macros/s/AKfycbwQEkv5I4IRd1YcES8v5a62KZJPXu325s00m6MYAl1l-uiJwJfLP0GScIw5VgtAOro9/exec";
 const MODEL = "claude-sonnet-4-5";
 const MAX_TOKENS = 8000;
 
@@ -616,13 +616,9 @@ async function testConnection() {
   try {
     const res = await fetch(GATEWAY_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": state.apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true"
-      },
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({
+        apiKey: state.apiKey,
         model: MODEL,
         max_tokens: 20,
         messages: [{ role: "user", content: "Say OK" }]
@@ -692,32 +688,25 @@ function log(msg, type = "info") {
 // ─── CLAUDE API CALL ──────────────────────────────────────────────────────────
 async function callClaude(systemPrompt, userContent, label) {
   log(`Calling Claude: ${label}...`);
+
+  // GAS proxy: apiKey in body, Content-Type text/plain avoids CORS preflight
   const body = {
+    apiKey: state.apiKey,
     model: MODEL,
     max_tokens: MAX_TOKENS,
     system: systemPrompt,
     messages: [{ role: "user", content: userContent }]
   };
 
-  const headers = {
-    "Content-Type": "application/json",
-    "x-api-key": state.apiKey,
-    "anthropic-version": "2023-06-01",
-    "anthropic-dangerous-direct-browser-access": "true"
-  };
-
   let res;
   try {
-    res = await fetch(GATEWAY_URL, { method: "POST", headers, body: JSON.stringify(body) });
+    res = await fetch(GATEWAY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(body)
+    });
   } catch(fetchErr) {
-    log(`Fetch failed: ${fetchErr.message}. Trying Authorization header...`, "warn");
-    const h2 = { ...headers, "Authorization": `Bearer ${state.apiKey}` };
-    delete h2["x-api-key"];
-    try {
-      res = await fetch(GATEWAY_URL, { method: "POST", headers: h2, body: JSON.stringify(body) });
-    } catch(e2) {
-      throw new Error(`CORS/Network blocked. Open browser console (F12 > Console) and paste error here. Raw: ${e2.message}`);
-    }
+    throw new Error(`Network error: ${fetchErr.message}`);
   }
 
   if (!res.ok) {
