@@ -379,7 +379,7 @@ const MODEL       = 'claude-sonnet-4-6';
 const LS_KEY      = 'ewl_api_key';
 const SS_KEY      = 'ewl_api_key_session';
 const MAX_MB      = 50;
-const API_TIMEOUT = 180_000;
+const API_TIMEOUT = 180000;
 const RETRY_MAX   = 3;
 const RETRY_BASE  = 1500;
 
@@ -469,6 +469,12 @@ window.addEventListener('unhandledrejection', function(e) {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Visible init banner
+  var initBanner = document.createElement('div');
+  initBanner.id = 'init-banner';
+  initBanner.style.cssText = 'position:fixed;bottom:12px;right:12px;background:#1C2E42;color:#fff;font-family:monospace;font-size:11px;padding:6px 12px;border-radius:6px;z-index:9999;opacity:0.9';
+  initBanner.textContent = 'JS: loading...';
+  document.body.appendChild(initBanner);
   // Set today's date
   const now = new Date();
   const d = document.getElementById('lesson-date');
@@ -486,7 +492,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   buildStageList();
-  wireEvents();
+  try {
+    wireEvents();
+    initBanner.textContent = 'JS: ready ✓ — click Generate to start';
+    setTimeout(function(){ if(initBanner) initBanner.style.display='none'; }, 4000);
+  } catch(err) {
+    initBanner.style.background = '#C0614A';
+    initBanner.textContent = 'INIT FAILED: ' + err.message;
+    console.error('[LP Engine] wireEvents failed:', err);
+  }
 });
 
 // ══════════════════════════════════════════════════════════
